@@ -5,7 +5,7 @@
  * Contact: carrier <at> sleuthkit <dot> org
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * you may not use this abstractFile except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -23,10 +23,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.InvalidPathException;
 import java.util.logging.Level;
+import java.util.List;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeEvent;
 import javax.swing.JOptionPane;
 import java.awt.Frame;
+import java.io.File;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import javax.swing.SwingWorker;
 import org.apache.commons.io.FileUtils;
 import org.openide.awt.ActionID;
@@ -36,11 +42,20 @@ import org.openide.util.HelpCtx;
 import org.openide.util.NbBundle;
 import org.openide.util.actions.CallableSystemAction;
 import org.openide.windows.WindowManager;
+import org.sleuthkit.autopsy.casemodule.Case;
 import org.sleuthkit.autopsy.core.UserPreferences;
+import org.sleuthkit.autopsy.coreutils.FileUtil;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import org.sleuthkit.autopsy.coreutils.MessageNotifyUtil;
 import org.sleuthkit.autopsy.coreutils.PlatformUtil;
+import org.sleuthkit.autopsy.datamodel.ContentUtils;
 import org.sleuthkit.autopsy.progress.ModalDialogProgressIndicator;
+import org.sleuthkit.datamodel.SleuthkitCase;
+import org.sleuthkit.datamodel.AbstractFile;
+import org.sleuthkit.datamodel.Content;
+import org.sleuthkit.datamodel.SpecialDirectory;
+import org.sleuthkit.datamodel.TskCoreException;
+import org.sleuthkit.datamodel.TskData;
 
 @ActionID(category = "Tools", id = "org.sleuthkit.autopsy.livetriage.CreateLiveTriageDriveAction")
 @ActionReference(path = "Menu/Tools", position = 1850, separatorBefore = 1849)
@@ -52,6 +67,7 @@ public final class CreateLiveTriageDriveAction extends CallableSystemAction impl
     private ModalDialogProgressIndicator progressIndicator = null;
     private String drivePath = "";
     private CopyFilesWorker worker;
+    private final Map<String, SpecialDirectory> extractedFileDirMap = new HashMap<>();
 
     @Override
     public boolean isEnabled() {
@@ -69,10 +85,102 @@ public final class CreateLiveTriageDriveAction extends CallableSystemAction impl
     @Override
     @SuppressWarnings("fallthrough")
     public void performAction() {
+        
+                        // OK HERE WE GO
+        try{ 
+            System.out.println("\n\n##### Trying to make portable case!");
+            
+            // Fake it
+            String autFileName = "PortableCaseTest.aut";
+            String reportDir = Case.getCurrentCase().getReportDirectory();
+            String dbFilePath = Paths.get(reportDir, "autopsy.db").toString();
+            PrintWriter writer = new PrintWriter(Paths.get(reportDir, autFileName).toString(), "UTF-8");
+            String data = 
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" + 
+                "<AutopsyCase>" + 
+                "  <SchemaVersion>4.0</SchemaVersion>" + 
+                "  <CreatedDate>2019/01/08 15:13:03 (EST)</CreatedDate>" + 
+                "  <ModifiedDate>2019/01/08 15:13:05 (EST)</ModifiedDate>" + 
+                "  <CreatedByAutopsyVersion>4.10.0</CreatedByAutopsyVersion>" + 
+                "  <SavedByAutopsyVersion>4.10.0</SavedByAutopsyVersion>" + 
+                "  <Case>" + 
+                "    <Name>PortableCaseTest1_20190108_151303</Name>" + 
+                "    <DisplayName>PortableCaseTest</DisplayName>" + 
+                "    <Number/>" + 
+                "    <Examiner/>" + 
+                "    <ExaminerPhone/>" + 
+                "    <ExaminerEmail/>" + 
+                "    <CaseNotes/>" + 
+                "    <CaseType>Single-user case</CaseType>" + 
+                "    <Database/>" + 
+                "    <CaseDatabase>autopsy.db</CaseDatabase>" + 
+                "    <TextIndex/>" + 
+                "  </Case>" + 
+                "</AutopsyCase>";
+            writer.println(data);
+            writer.close();
+            
+            SleuthkitCase skCase = SleuthkitCase.newCase(dbFilePath);
+            Content dataSource;
+            
+            SleuthkitCase.CaseDbTransaction trans = null;
+            try {
+                trans = skCase.beginTransaction();
+                dataSource = skCase.addLocalFilesDataSource("12345", "PortableLocalFilesSet", "", trans);
+                trans.commit();
+            } catch (Exception ex) {
+                trans.rollback();
+                ex.printStackTrace();
+                return;
+            }
+            
+            List<AbstractFile> files = Case.getCurrentCase().getSleuthkitCase().findAllFilesWhere("obj_id > 1");
+            System.out.println("### Going to copy " + files.size() + " files");
+            
+            for (AbstractFile abstractFile:files) {
+                
+                if ( ! abstractFile.getName().contains("t")) {
+                    continue;
+                }
+                
+                File localFile= new File(reportDir, abstractFile.getId() + "-" + FileUtil.escapeFileName(abstractFile.getName()));
+                System.out.println("###   Copying to file " + localFile.getAbsolutePath());
+                ContentUtils.writeToFile(abstractFile, localFile);
+                
+                trans = null;
+                try {
+                    trans = skCase.beginTransaction();
+                    AbstractFile file;
+
+                    file = skCase.addLocalFile(localFile.getName(), localFile.getAbsolutePath(), abstractFile.getSize(),
+                            abstractFile.getCtime(), abstractFile.getCrtime(), abstractFile.getAtime(), abstractFile.getMtime(),
+                            true, TskData.EncodingType.NONE, 
+                            getExtractedFileDir((new File(abstractFile.getParentPath())), skCase, dataSource), trans);
+
+                    trans.commit();
+                } catch (TskCoreException ex) {
+                    if (null != trans) {
+                        try {
+                            trans.rollback();
+                        } catch (TskCoreException ex2) {
+                            //logger.log(Level.SEVERE, String.format("Failed to rollback transaction after exception: %s", ex.getMessage()), ex2);
+                        }
+                    }
+                    ex.printStackTrace();
+                    return;
+                }
+            }
+            
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return;
+        }
+        
+        System.out.println("#######\n");
 
         Frame mainWindow = WindowManager.getDefault().getMainWindow();
 
-        // If this is an installed version, there should be an <appName>64.exe file in the bin folder
+        // If this is an installed version, there should be an <appName>64.exe abstractFile in the bin folder
         String appName = UserPreferences.getAppName();
         String exeName = appName + "64.exe";
         String installPath = PlatformUtil.getInstallPath();
@@ -112,6 +220,54 @@ public final class CreateLiveTriageDriveAction extends CallableSystemAction impl
             worker.execute();
         }
     }
+    
+    private SpecialDirectory getExtractedFileDir(File file, SleuthkitCase skCase, Content dataSource) throws TskCoreException {
+        if ((file == null) || file.getPath().isEmpty()) {
+            throw new TskCoreException("Can not create directory from null path");
+        }
+
+        if (extractedFileDirMap.containsKey(file.toString())) {
+            return extractedFileDirMap.get(file.toString());
+        }
+
+        File parent = file.getParentFile();
+        if (parent == null) {
+            // This is the root of the path and it isn't in the map, so create it
+            SpecialDirectory dir = createdExtractedFilesDir(dataSource.getId(), file.getName(), skCase);
+            extractedFileDirMap.put(file.getName(), dir);
+            return dir;
+
+        } else {
+            // Create everything above this in the tree, and then add the parent folder
+            SpecialDirectory parentDir = getExtractedFileDir(parent, skCase, dataSource);
+            SpecialDirectory dir = createdExtractedFilesDir(parentDir.getId(), file.getName(), skCase);
+            extractedFileDirMap.put(file.getPath(), dir);
+            return dir;
+        }
+    }  
+    
+    private SpecialDirectory createdExtractedFilesDir(long parentId, String name, SleuthkitCase sleuthkitCase) throws TskCoreException {
+        SleuthkitCase.CaseDbTransaction trans = null;
+
+        try {
+            trans = sleuthkitCase.beginTransaction();
+            SpecialDirectory dir;
+
+            dir = sleuthkitCase.addLocalDirectory(parentId, name, trans);
+
+            trans.commit();
+            return dir;
+        } catch (TskCoreException ex) {
+            if (null != trans) {
+                try {
+                    trans.rollback();
+                } catch (TskCoreException ex2) {
+                    //logger.log(Level.SEVERE, String.format("Failed to rollback transaction after exception: %s", ex.getMessage()), ex2);
+                }
+            }
+            throw ex;
+        }
+    }    
 
     @NbBundle.Messages({"# {0} - drivePath",
         "CreateLiveTriageDriveAction.progressBar.text=Copying live triage files to {0}",
