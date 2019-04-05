@@ -720,7 +720,8 @@ public class EventsRepository {
                 String fullDescription = eventDescription.getFullDescription();
                 String medDescription = eventDescription.getMedDescription();
                 String shortDescription = eventDescription.getShortDescription();
-                eventDB.insertEvent(eventDescription.getTime(), type, datasourceID, objectID, artifactID, fullDescription, medDescription, shortDescription, null, hashSets, tags, trans);            }
+                eventDB.insertEvent(eventDescription.getTime(), type, datasourceID, objectID, artifactID, fullDescription, medDescription, shortDescription, null, hashSets, tags, trans);
+            }
         }
     }
 }
