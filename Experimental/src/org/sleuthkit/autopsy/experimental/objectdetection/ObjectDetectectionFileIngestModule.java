@@ -28,8 +28,13 @@ import org.opencv.core.CvException;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfRect;
-//import org.opencv.highgui;
+import org.opencv.dnn.Dnn;
+import org.opencv.dnn.Net;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.core.*;
+import org.opencv.dnn.*;
+import org.opencv.imgcodecs.*;
+import org.opencv.imgproc.*;
 import org.opencv.objdetect.CascadeClassifier;
 import org.openide.util.NbBundle.Messages;
 import org.sleuthkit.autopsy.casemodule.Case;
@@ -97,6 +102,30 @@ public class ObjectDetectectionFileIngestModule extends FileIngestModuleAdapter 
     @Messages({"# {0} - detectionCount", "ObjectDetectionFileIngestModule.classifierDetection.text=Classifier detected {0} object(s)"})
     @Override
     public ProcessResult process(AbstractFile file) {
+        
+        
+        System.out.println("\n#######\nModel testing");
+        File modelFile = new File("C:\\Users\\apriestman\\Downloads\\bvlc_alexnet.caffemodel");
+        if (modelFile.exists()) {
+            System.out.println("Found model file " + modelFile.getAbsolutePath());
+        } else {
+            System.out.println("Could not find model file " + modelFile.getAbsolutePath());
+        }
+        File protoFile = new File("C:\\cygwin\\home\\apriestman\\Work\\autopsy\\caffe\\models\\bvlc_alexnet\\deploy.prototxt");
+        if (protoFile.exists()) {
+            System.out.println("Found prototxt file " + protoFile.getAbsolutePath());
+        } else {
+            System.out.println("Could not find prototxt file " + protoFile.getAbsolutePath());
+        }
+
+        System.out.println("Loading model");
+        Net net = Dnn.readNetFromCaffe(protoFile.getAbsolutePath(), modelFile.getAbsolutePath());
+
+        System.out.println("Have Mat - time for adventure");
+
+
+        
+        System.out.println("Starting object detection code");       
         if (!classifiers.isEmpty() && ImageUtils.isImageThumbnailSupported(file)) {
             //Any image we can create a thumbnail for is one we should apply the classifiers to 
 
@@ -115,6 +144,9 @@ public class ObjectDetectectionFileIngestModule extends FileIngestModuleAdapter 
                 logger.log(Level.WARNING, "Unable to read image to byte array for performing object detection on " + file.getParentPath() + file.getName() + " with object id of " + file.getId(), ex);
                 return IngestModule.ProcessResult.ERROR;
             }
+            
+        
+            
 
             Mat originalImage;
             try {
@@ -128,6 +160,36 @@ public class ObjectDetectectionFileIngestModule extends FileIngestModuleAdapter 
                 logger.log(Level.SEVERE, "Unexpected Exception encountered attempting to use OpenCV to decode picture: " + file.getParentPath() + file.getName() + " with object id of " + file.getId(), unexpectedException);
                 return IngestModule.ProcessResult.ERROR;
             }
+            
+            try {
+                Mat img = Imgcodecs.imdecode(new MatOfByte(imageInMemory), Imgcodecs.IMREAD_GRAYSCALE);
+                //Mat img = Imgcodecs.imread("R:\\work\\images\\Object Detection\\pictures\\cat1.jpg");
+                //System.out.println("  Mat classImage = Imgcodecs.imdecode(new MatOfByte(imageInMemory))");
+                //Mat classImage = Dnn.blobFromImage(originalImage);
+                 Mat classImage = Dnn.blobFromImage(img, 
+                    1.0/255, new Size(512,256), new Scalar(0, 0, 0), true, false);
+                System.out.println("  net.setInput(classImage)");
+                net.setInput(classImage);
+                System.out.println("  Mat prob = net.forward()");
+                java.util.List<Mat> outputBlobs = new java.util.ArrayList<>();
+                java.util.List<String> outBlobNames = new java.util.ArrayList<>();;
+                //net.forward(outputBlobs, outBlobNames);
+                net.forward();
+                System.out.println("  There are " + outputBlobs.size() + " outputBlobs");
+                if (outBlobNames.size() > 0) {
+                    System.out.println("    First output blob name: " + outBlobNames.get(0));
+                }
+                System.out.println("  Layers?");
+                java.util.List<String> layerNames = net.getUnconnectedOutLayersNames();
+                System.out.println("  There are " + layerNames.size() + " layer names");
+                if (layerNames.size() > 0) {
+                    System.out.println("    First layer name: " + layerNames.get(0));
+                }
+                System.out.println("\n");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }                
+                                    
             MatOfRect detectionRectangles = new MatOfRect(); //the rectangles which reprent the coordinates on the image for where objects were detected
             for (String classifierKey : classifiers.keySet()) {
                 //apply each classifier to the file
