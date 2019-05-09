@@ -695,15 +695,18 @@
                 <package>org.opencv.calib3d</package>
                 <package>org.opencv.contrib</package>
                 <package>org.opencv.core</package>
+				<package>org.opencv.dnn</package>
                 <package>org.opencv.features2d</package>
                 <package>org.opencv.gpu</package>
                 <package>org.opencv.highgui</package>
+				<package>org.opencv.imgcodecs</package>
                 <package>org.opencv.imgproc</package>
                 <package>org.opencv.ml</package>
                 <package>org.opencv.objdetect</package>
                 <package>org.opencv.photo</package>
                 <package>org.opencv.utils</package>
                 <package>org.opencv.video</package>
+                <package>org.opencv.videoio</package>
                 <package>org.openxmlformats.schemas.drawingml.x2006.chart</package>
                 <package>org.openxmlformats.schemas.drawingml.x2006.chart.impl</package>
                 <package>org.openxmlformats.schemas.drawingml.x2006.main</package>
@@ -923,8 +926,8 @@
                 <binary-origin>release/modules/ext/commons-compress-1.18.jar</binary-origin>
             </class-path-extension>
             <class-path-extension>
-                <runtime-relative-path>ext/opencv-248.jar</runtime-relative-path>
-                <binary-origin>release/modules/ext/opencv-248.jar</binary-origin>
+                <runtime-relative-path>ext/opencv-410.jar</runtime-relative-path>
+                <binary-origin>release/modules/ext/opencv-410.jar</binary-origin>
             </class-path-extension>
             <class-path-extension>
                 <runtime-relative-path>ext/slf4j-simple-1.6.1.jar</runtime-relative-path>
