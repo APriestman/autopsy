@@ -105,13 +105,13 @@ public class ObjectDetectectionFileIngestModule extends FileIngestModuleAdapter 
         
         
         System.out.println("\n#######\nModel testing");
-        File modelFile = new File("C:\\Users\\apriestman\\Downloads\\bvlc_alexnet.caffemodel");
+        File modelFile = new File("R:\\work\\images\\Object Detection\\bvlc_googlenet.caffemodel");
         if (modelFile.exists()) {
             System.out.println("Found model file " + modelFile.getAbsolutePath());
         } else {
             System.out.println("Could not find model file " + modelFile.getAbsolutePath());
         }
-        File protoFile = new File("C:\\cygwin\\home\\apriestman\\Work\\autopsy\\caffe\\models\\bvlc_alexnet\\deploy.prototxt");
+        File protoFile = new File("R:\\work\\images\\Object Detection\\bvlc_googlenet.prototxt");
         if (protoFile.exists()) {
             System.out.println("Found prototxt file " + protoFile.getAbsolutePath());
         } else {
