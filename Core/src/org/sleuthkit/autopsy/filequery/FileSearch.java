@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -796,6 +797,7 @@ class FileSearch {
                         && file.getAbstractFile().getMd5Hash() != null
                         && !file.getAbstractFile().getMd5Hash().isEmpty()) {
                     hashesToLookUp.add(file.getAbstractFile().getMd5Hash());
+                    currentFiles.add(file);
                 }
                 
                 if (hashesToLookUp.size() >= BATCH_SIZE) {
@@ -806,23 +808,6 @@ class FileSearch {
                 }
             }
             computeFrequency(hashesToLookUp, currentFiles, centralRepoDb);
-            
-            /*
-            for (ResultFile file : files) {
-                if (file.getFrequency() == Frequency.UNKNOWN) {
-                    try {
-                        if (file.getAbstractFile().getMd5Hash() != null && ! file.getAbstractFile().getMd5Hash().isEmpty()) {
-                            
-                            CorrelationAttributeInstance.Type attributeType = centralRepoDb.getCorrelationTypeById(CorrelationAttributeInstance.FILES_TYPE_ID);
-                            long count = centralRepoDb.getCountUniqueCaseDataSourceTuplesHavingTypeValue(attributeType, file.getAbstractFile().getMd5Hash());
-                            file.setFrequency(Frequency.fromCount(count));
-                        }
-                    } catch (EamDbException | CorrelationAttributeNormalizationException ex) {
-                        throw new FileSearchException("Error looking up central repository frequency for file with ID " 
-                                + file.getAbstractFile().getId(), ex); // NON-NLS
-                    }
-                }
-            }*/
         }        
     }
     
@@ -848,15 +833,13 @@ class FileSearch {
                     + "(SELECT DISTINCT case_id, data_source_id, value FROM " + tableName
                     + " WHERE value IN ("
                     + hashes
-                    + ")) AS values GROUP BY value";
-            System.out.println("\n\n###### computeFrequency clause: ");
-            System.out.println(selectClause + "\n");
+                    + ")) AS foo GROUP BY value";
             
             FrequencyCallback callback = new FrequencyCallback(currentFiles);
             centralRepoDb.processSelectClause(selectClause, callback);
             
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (EamDbException ex) {
+            logger.log(Level.WARNING, "Error getting frequency counts from Central Repository", ex); // NON-NLS
         }
         
     }
@@ -867,10 +850,10 @@ class FileSearch {
      */
     private static class FrequencyCallback implements InstanceTableCallback {
 
-        private final List<ResultFile> resultFiles;
+        private final List<ResultFile> files;
 
-        private FrequencyCallback(List<ResultFile> resultFiles) {
-            this.resultFiles = resultFiles;
+        private FrequencyCallback(List<ResultFile> files) {
+            this.files = files;
         }
 
         @Override
@@ -880,11 +863,16 @@ class FileSearch {
                 while (resultSet.next()) {
                     String hash = resultSet.getString(1);
                     int count = resultSet.getInt(2);
-                    System.out.println(hash + " -> " + count);
+                    for (Iterator<ResultFile> iterator = files.iterator(); iterator.hasNext();) {
+                        ResultFile file = iterator.next();
+                        if (file.getAbstractFile().getMd5Hash().equalsIgnoreCase(hash)) {
+                            file.setFrequency(Frequency.fromCount(count));
+                            iterator.remove();
+                        }
+                    }
                 }
-            } catch (Exception ex) {
-// catch (SQLException | EamDbException | CorrelationAttributeNormalizationException ex) {
-                logger.log(Level.WARNING, "Error getting artifact instances from database.", ex); // NON-NLS
+            } catch (SQLException ex) {
+                logger.log(Level.WARNING, "Error getting frequency counts from Central Repository", ex); // NON-NLS
             }
         }
     }
