@@ -18,6 +18,10 @@
  */
 package org.sleuthkit.autopsy.modules.filetypeid;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -299,6 +303,36 @@ public class FileTypeDetector {
 
         return mimeType;
     }
+    
+   /**
+     * Get the MIME type for a file on disk.
+     * This is less robust than the version for AbstractFile objects - it's a simple
+     * call to Tika detect() with some cleanup on the result.
+     * 
+     * @param file File to get the MIME type for
+     * 
+     * @return The MIME type. octet-stream will be returned if an error occurs.
+     */
+    public String getMIMETypeForExternalFile(File file) {
+        try (InputStream inputStream = new FileInputStream(file);
+            TikaInputStream tikaInputStream = TikaInputStream.get(inputStream)) {
+            String tikaType = tika.detect(tikaInputStream);
+            
+            /*
+             * Remove the Tika suffix from the MIME type name.
+             */
+            String mimeType = tikaType.replace("tika-", ""); //NON-NLS
+            
+            /*
+             * Remove the optional parameter from the MIME type.
+             */
+            mimeType = removeOptionalParameter(mimeType);
+            return mimeType;
+        } catch (IOException ex) {
+            logger.log(Level.WARNING, "Error detecting MIME type of file " + file.toString(), ex);
+            return MimeTypes.OCTET_STREAM;
+        }
+    }    
 
     /**
      * Determine if the byte is 255 (0xFF) by examining the last 4 bits and the
