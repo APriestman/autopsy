@@ -2,13 +2,13 @@
 
 \section mod_mobile_overview Overview
 
-Smart phones are basically small computers and Autopsy can parse and analyze the contents of Android and iOS devices.  This includes both the official databases and third-party app databaes.  This page provides some basic pointers for doing so.  It assumes that you have already read \ref mod_ingest_page and know the basics of writing ingest modules.
+Smart phones are basically small computers and Autopsy can parse and analyze the contents of Android and iOS devices.  This includes both the official databases and third-party app databases.  This page provides some basic pointers for doing so.  It assumes that you have already read \ref mod_ingest_page and know the basics of writing ingest modules.
 
 The basic idea is that you need an ingest module.  We've typically written mobile forensics modules as data source-level ingest modules, which means they are passed in a reference to the entire data source and not passed in individual files. We do this because we typically know the path where we expect to find the files and databases of interest. 
 
 The ingest module has a basic flow of
-- Query for files using the org.sleuthkit.autopsy.casemodule.services.FileManager service
-- Parse them or open them with SQLite (you'll need to bring along a SQLite JAR file)
+- Find the application database files
+- Run SQL queries
 - Create Blackboard Artifacts (see \ref platform_blackboard)
 
 The BlackBoard has standard artifacts for the standard cell phone forensics data types, such as BlackboardArtifact.TSK_CALLLOG. 
@@ -44,10 +44,6 @@ else:
 	direction = CommunicationDirection.INCOMING
 	fromAddress = Account.Address(transfersResultSet.getString("device"), transfersResultSet.getString("name") )
 
-msgBody = ""    # there is no body.
-attachments = [transfersResultSet.getString("path")]
-msgBody = general.appendAttachmentList(msgBody, attachments)
-
 timeStamp = transfersResultSet.getLong("createtime") / 1000
 messageArtifact = transferDbHelper.addMessage( 
 						self._MESSAGE_TYPE,
@@ -57,8 +53,23 @@ messageArtifact = transferDbHelper.addMessage(
 						timeStamp,
 						MessageReadStatus.UNKNOWN,
 						None,   # subject
-						msgBody,
-						None )    # thread id
+						None,   # body
+						None )  # thread id
+\endcode
+
+A mobile parser that parses messages and creates message artifacts can also add attached files and associate them with message as follows:
+
+\code
+fileAttachments = ArrayList()
+# extract path of attachment(s)
+attachmentPath = transfersResultSet.getString("path")
+if attachmentPath:
+    # Create a file attachment with given path
+    fileAttachment = FileAttachment(current_case.getSleuthkitCase(), transferDbHelper.getDBFile().getDataSource(), attachmentPath)
+    fileAttachments.add(fileAttachment)
+                                
+    msgAttachments = MessageAttachments(fileAttachments, [])
+    attachmentArtifact = transferDbHelper.addAttachments(messageArtifact, msgAttachments)
 \endcode
 
 Look in the <tt>autopsy\\InternalPythonModules\\android\\</tt> folder for additional examples.
