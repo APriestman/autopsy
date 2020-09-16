@@ -177,6 +177,7 @@ public class PastCasesSummary {
      * utilized.
      *
      * @param provider           The object providing the current SleuthkitCase.
+     * @param corrAttrRetriever  Correlation attribute retriever.
      * @param logger             The logger to use.
      */
     public PastCasesSummary(
@@ -278,7 +279,7 @@ public class PastCasesSummary {
 
     /**
      * Given an artifact with a TYPE_ASSOCIATED_ARTIFACT attribute, retrieves the related artifact.
-     * @param skCase The sleuthkit case.
+     * 
      * @param artifact The artifact with the TYPE_ASSOCIATED_ARTIFACT attribute.
      * @return The artifact if found or null if not.
      * @throws SleuthkitCaseProviderException 

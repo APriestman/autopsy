@@ -33,7 +33,6 @@ public class TopDomainsResult {
      * Describes a top domain result.
      *
      * @param domain     The domain.
-     * @param url        The url.
      * @param visitTimes The number of times it was visited.
      * @param lastVisit  The date of the last visit.
      */
