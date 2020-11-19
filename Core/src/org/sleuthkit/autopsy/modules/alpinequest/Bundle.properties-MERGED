@@ -1,2 +1,4 @@
 AlpineQuestIngestModuleFactory.moduleDesc.text=Parses tracks, waypoints, other things created by the AlpineQuest app
 AlpineQuestIngestModuleFactory.moduleName.text=AlpineQuest Parser
+# {0} - numSegments
+AlpineQuestIngestModuleFactory.segmentNumber.text=\ (Part {0})

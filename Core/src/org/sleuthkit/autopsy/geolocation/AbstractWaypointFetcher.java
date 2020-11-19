@@ -81,7 +81,7 @@ abstract class AbstractWaypointFetcher implements WaypointBuilder.WaypointFilter
      * @param wasEntirelySuccessful True if no errors occurred while processing.
      */
     abstract void handleFilteredWaypointSet(Set<MapWaypoint> mapWaypoints, List<Set<MapWaypoint>> tracks, 
-        boolean wasEntirelySuccessful);
+        List<Set<MapWaypoint>> areas, boolean wasEntirelySuccessful);
 
     @Override
     public void process(GeoLocationParseResult<Waypoint> waypointResults) {

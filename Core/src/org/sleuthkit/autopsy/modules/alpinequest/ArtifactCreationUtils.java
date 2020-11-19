@@ -21,6 +21,7 @@ package org.sleuthkit.autopsy.modules.alpinequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
+import org.openide.util.NbBundle;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import org.sleuthkit.autopsy.modules.alpinequest.AlpineQuestStructures.*;
 import org.sleuthkit.datamodel.AbstractFile;
@@ -94,11 +95,16 @@ class ArtifactCreationUtils {
      * 
      * @throws TskCoreException 
      */
+    @NbBundle.Messages({
+        "# {0} - numSegments",
+        "AlpineQuestIngestModuleFactory.segmentNumber.text= (Part {0})"
+    })
     static void createTrackArtifactsFromSegments(List<Segment> segments, String name, AbstractFile abstractFile) throws TskCoreException {
-        // Make one track for each segment
-        for (AlpineQuestStructures.Segment segment : segments) {
-            createTrackArtifactFromLocations(segment.getLocations(), name, abstractFile);
+        List<Location> fullTrack = new ArrayList<>();
+        for (Segment segment : segments) {
+            fullTrack.addAll(segment.getLocations());
         }
+        createTrackArtifactFromLocations(fullTrack, name, abstractFile);
     }
     
     static void createTrackArtifactFromLocations(List<Location> locations, String name, AbstractFile abstractFile) throws TskCoreException {

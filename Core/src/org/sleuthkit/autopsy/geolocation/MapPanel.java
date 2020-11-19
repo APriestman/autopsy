@@ -23,6 +23,7 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Paint;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -30,6 +31,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.geom.GeneralPath;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
@@ -96,6 +98,7 @@ final public class MapPanel extends javax.swing.JPanel {
     private KdTree<MapWaypoint> waypointTree;
     private Set<MapWaypoint> waypointSet;
     private List<Set<MapWaypoint>> tracks = new ArrayList<>();
+    private List<Set<MapWaypoint>> areas = new ArrayList<>();
 
     private Popup currentPopup;
     private final PopupFactory popupFactory;
@@ -342,6 +345,15 @@ final public class MapPanel extends javax.swing.JPanel {
     void setTracks(List<Set<MapWaypoint>> tracks) {
         this.tracks = tracks;
     }
+    
+    /**
+     * Stores the given List of areas from which to draw paths later
+     *
+     * @param areas
+     */
+    void setAreas(List<Set<MapWaypoint>> areas) {
+        this.areas = areas;
+    }    
 
     /**
      * Set the current zoom level.
@@ -867,6 +879,8 @@ final public class MapPanel extends javax.swing.JPanel {
             int lastY = 0;
 
             boolean first = true;
+            
+            GeneralPath polygon = new GeneralPath(GeneralPath.WIND_EVEN_ODD, track.size());
 
             for (MapWaypoint wp : track) {
                 Point2D p = map.getTileFactory().geoToPixel(wp.getPosition(), map.getZoom());
@@ -874,14 +888,20 @@ final public class MapPanel extends javax.swing.JPanel {
                 int thisY = (int) p.getY();
 
                 if (first) {
+                    polygon.moveTo(thisX, thisY);
                     first = false;
                 } else {
-                    g.drawLine(lastX, lastY, thisX, thisY);
+                    polygon.lineTo(thisX, thisY);
+                    //g.drawLine(lastX, lastY, thisX, thisY);
                 }
 
                 lastX = thisX;
                 lastY = thisY;
             }
+            polygon.closePath();
+            g.setPaint(new Color(1f,0f,0f,.2f) );
+            g.fill(polygon);
+            g.draw(polygon);
         }
 
         @Override
@@ -903,4 +923,58 @@ final public class MapPanel extends javax.swing.JPanel {
             g2d.dispose();
         }
     }
+    
+    /**
+     * Renderer for map track routes
+     */
+    private class MapAreaRenderer implements Painter<JXMapViewer> {
+
+        private final List<Set<MapWaypoint>> areas;
+
+        MapAreaRenderer(List<Set<MapWaypoint>> areas) {
+            this.areas = areas;
+        }
+
+        private void drawArea(Set<MapWaypoint> area, Graphics2D g, JXMapViewer map) {
+            boolean first = true;
+            
+            GeneralPath polygon = new GeneralPath(GeneralPath.WIND_EVEN_ODD, area.size());
+
+            for (MapWaypoint wp : area) {
+                Point2D p = map.getTileFactory().geoToPixel(wp.getPosition(), map.getZoom());
+                int thisX = (int) p.getX();
+                int thisY = (int) p.getY();
+
+                if (first) {
+                    polygon.moveTo(thisX, thisY);
+                    first = false;
+                } else {
+                    polygon.lineTo(thisX, thisY);
+                }
+            }
+            polygon.closePath();
+            g.setPaint(new Color(1f,0f,0f,.2f) );
+            g.fill(polygon);
+            g.draw(polygon);
+        }
+
+        @Override
+        public void paint(Graphics2D g, JXMapViewer map, int w, int h) {
+            Graphics2D g2d = (Graphics2D) g.create();
+
+            Rectangle bounds = map.getViewportBounds();
+            g2d.translate(-bounds.x, -bounds.y);
+
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            g2d.setColor(Color.BLACK);
+            g2d.setStroke(new BasicStroke(2));
+
+            for (Set<MapWaypoint> area : areas) {
+                drawArea(area, g2d, map);
+            }
+
+            g2d.dispose();
+        }
+    }    
 }
