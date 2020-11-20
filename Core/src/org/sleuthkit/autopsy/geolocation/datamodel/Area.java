@@ -28,7 +28,7 @@ import org.sleuthkit.datamodel.BlackboardArtifact;
 import org.sleuthkit.datamodel.BlackboardAttribute;
 import org.sleuthkit.datamodel.blackboardutils.attributes.BlackboardJsonAttrUtil;
 import org.sleuthkit.datamodel.blackboardutils.attributes.BlackboardJsonAttrUtil.InvalidJsonException;
-import org.sleuthkit.datamodel.blackboardutils.attributes.GeoTrackPoints;
+import org.sleuthkit.datamodel.blackboardutils.attributes.GeoAreaPoints;
 import org.sleuthkit.autopsy.coreutils.Logger;
 
 /**
@@ -59,7 +59,7 @@ public final class Area extends GeoPath {
     private Area(BlackboardArtifact artifact, Map<BlackboardAttribute.ATTRIBUTE_TYPE, BlackboardAttribute> attributeMap) throws GeoLocationDataException {
         super(artifact, getAreaName(attributeMap));
 
-        GeoTrackPoints points = getPointsList(attributeMap);
+        GeoAreaPoints points = getPointsList(attributeMap);
         buildPath(points, artifact);
     }
 
@@ -90,8 +90,8 @@ public final class Area extends GeoPath {
         "GEOArea_point_label_header=Area outline point for area: {0}"
     })
     private void buildPath(GeoAreaPoints points, BlackboardArtifact artifact) throws GeoLocationDataException {
-        for (GeoTrackPoints.AreaPoint point : points) {
-            addToPath(new TrackWaypoint(artifact, Bundle.GEOArea_point_label_header(getLabel()), point));
+        for (GeoAreaPoints.AreaPoint point : points) {
+            addToPath(new AreaWaypoint(artifact, Bundle.GEOArea_point_label_header(getLabel()), point));
         }
     }
 
@@ -105,7 +105,7 @@ public final class Area extends GeoPath {
      *
      * @throws GeoLocationDataException
      */
-    private GeoTrackPoints getPointsList(Map<BlackboardAttribute.ATTRIBUTE_TYPE, BlackboardAttribute> attributeMap) throws GeoLocationDataException {
+    private GeoAreaPoints getPointsList(Map<BlackboardAttribute.ATTRIBUTE_TYPE, BlackboardAttribute> attributeMap) throws GeoLocationDataException {
         BlackboardAttribute attribute = attributeMap.get(BlackboardAttribute.ATTRIBUTE_TYPE.TSK_GEO_AREAPOINTS);
         if (attribute == null) {
             LOGGER.log(Level.SEVERE, "No TSK_GEO_AREAPOINTS attribute was present on the artifact.");
@@ -113,7 +113,7 @@ public final class Area extends GeoPath {
         }
 
         try {
-            return BlackboardJsonAttrUtil.fromAttribute(attribute, GeoTrackPoints.class);
+            return BlackboardJsonAttrUtil.fromAttribute(attribute, GeoAreaPoints.class);
         } catch (InvalidJsonException ex) {
             LOGGER.log(Level.SEVERE, "TSK_GEO_AREAPOINTS could not be properly parsed from TSK_GEO_AREAPOINTS attribute.");
             throw new GeoLocationDataException("Unable to parse area points in TSK_GEO_AREAPOINTS attribute", ex);
@@ -138,7 +138,7 @@ public final class Area extends GeoPath {
          *
          * @throws GeoLocationDataException
          */
-        AreaWaypoint(BlackboardArtifact artifact, String pointLabel, GeoTrackPoints.AreaPoint point) throws GeoLocationDataException {
+        AreaWaypoint(BlackboardArtifact artifact, String pointLabel, GeoAreaPoints.AreaPoint point) throws GeoLocationDataException {
             super(artifact, pointLabel,
                     null,
                     point.getLatitude(),
@@ -169,19 +169,8 @@ public final class Area extends GeoPath {
          *
          * @return A list of Waypoint.properies.
          */
-        private List<Waypoint.Property> createPropertyList(GeoTrackPoints.TrackPoint point) {
+        private List<Waypoint.Property> createPropertyList(GeoAreaPoints.AreaPoint point) {
             List<Waypoint.Property> list = new ArrayList<>();
-
-            Long timestamp = point.getTimeStamp();
-            if (timestamp != null) {
-                list.add(new Waypoint.Property(BlackboardAttribute.ATTRIBUTE_TYPE.TSK_DATETIME.getDisplayName(), timestamp.toString()));
-            }
-
-            Double value = point.getVelocity();
-            if (value != null) {
-                list.add(new Waypoint.Property(BlackboardAttribute.ATTRIBUTE_TYPE.TSK_GEO_VELOCITY.getDisplayName(), value.toString()));
-            }
-
             return list;
         }
     }
