@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import javafx.util.Pair;
 import org.sleuthkit.autopsy.casemodule.Case;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import org.sleuthkit.autopsy.geolocation.datamodel.GeoLocationDataException;
@@ -98,7 +97,7 @@ abstract class AbstractWaypointFetcher implements WaypointBuilder.WaypointFilter
         GeoLocationParseResult<Area> areaResults = null;
         if (filters.getArtifactTypes().contains(ARTIFACT_TYPE.TSK_GPS_AREA)) {
             try {
-                trackResults = Area.getAreas(Case.getCurrentCase().getSleuthkitCase(), filters.getDataSources());
+                areaResults = Area.getAreas(Case.getCurrentCase().getSleuthkitCase(), filters.getDataSources());
             } catch (GeoLocationDataException ex) {
                 logger.log(Level.WARNING, "Exception thrown while retrieving list of Areas", ex);
             }
@@ -106,8 +105,8 @@ abstract class AbstractWaypointFetcher implements WaypointBuilder.WaypointFilter
               
         GeoDataSet geoDataSet = createWaypointList(
             waypointResults.getItems(),
-            (trackResults == null) ? new ArrayList<Track>() : trackResults.getItems(),
-            (areaResults == null) ? new ArrayList<Area>() : areaResults.getItems());
+            (trackResults == null) ? new ArrayList<>() : trackResults.getItems(),
+            (areaResults == null) ? new ArrayList<>() : areaResults.getItems());
 
         
         final Set<MapWaypoint> pointSet = MapWaypoint.getWaypoints(geoDataSet.getWaypoints());
@@ -119,10 +118,12 @@ abstract class AbstractWaypointFetcher implements WaypointBuilder.WaypointFilter
         for (List<Waypoint> t : geoDataSet.getAreas()) {
             areaSets.add(MapWaypoint.getWaypoints(t));
         }
-
+        // TODO check for area errors too TODO TODO
         handleFilteredWaypointSet(
             pointSet, trackSets, areaSets,
-            (trackResults == null || trackResults.isSuccessfullyParsed()) && waypointResults.isSuccessfullyParsed());
+            (trackResults == null || trackResults.isSuccessfullyParsed()) 
+                    && (areaResults == null || areaResults.isSuccessfullyParsed())
+                    && waypointResults.isSuccessfullyParsed());
     }
 
     /**

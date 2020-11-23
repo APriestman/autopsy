@@ -30,6 +30,7 @@ import org.sleuthkit.datamodel.BlackboardArtifact;
 import org.sleuthkit.datamodel.BlackboardAttribute;
 import org.sleuthkit.datamodel.TskCoreException;
 import org.sleuthkit.datamodel.blackboardutils.GeoArtifactsHelper;
+import org.sleuthkit.datamodel.blackboardutils.attributes.GeoAreaPoints;
 import org.sleuthkit.datamodel.blackboardutils.attributes.GeoTrackPoints;
 import org.sleuthkit.datamodel.blackboardutils.attributes.GeoWaypoints;
 
@@ -125,6 +126,27 @@ class ArtifactCreationUtils {
             }
         }
     }
+    
+    static void createAreaArtifactFromLocations(List<Location> locations, String name, AbstractFile abstractFile) throws TskCoreException {
+        // Convert Locations into GeoTrackPoints
+        
+		System.out.println("\n### createAreaArtifactFromLocations - attempting to add area with " + locations.size() + " points");
+        GeoAreaPoints geoAreaPoints = new GeoAreaPoints();
+        for (AlpineQuestStructures.Location location : locations) {
+            System.out.println("   Adding point " + location.getLatitude() + ", " + location.getLongitude());
+            geoAreaPoints.addPoint(new GeoAreaPoints.AreaPoint(location.getLatitude(), location.getLongitude()));
+        }
+
+        // Create the artifact
+        if (!geoAreaPoints.isEmpty()) {
+            try {
+                (new GeoArtifactsHelper(abstractFile.getSleuthkitCase(), AlpineQuestIngestModuleFactory.getModuleName(), 
+                    AlpineQuestIngestModule.getProgramName(), abstractFile)).addArea(name, geoAreaPoints, null);
+            }  catch (Blackboard.BlackboardException ex) {
+                logger.log(Level.WARNING, "Failed to post artifacts", ex);
+            }
+        }
+    }    
     
     /**
      * Create artifact from a route.

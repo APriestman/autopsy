@@ -82,7 +82,7 @@ class AreaFile {
      * @throws TskCoreException 
      */
     public void createArtifacts() throws TskCoreException {
-        ArtifactCreationUtils.createTrackArtifactFromLocations(locations, metadata.getName(), abstractFile);
+        ArtifactCreationUtils.createAreaArtifactFromLocations(locations, metadata.getName(), abstractFile);
     }
 }
 
