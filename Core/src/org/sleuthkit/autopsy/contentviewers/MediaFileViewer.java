@@ -131,9 +131,11 @@ class MediaFileViewer extends javax.swing.JPanel implements FileTypeViewer {
 
             lastFile = file;
             if (mediaPlayerPanel != null && mediaPlayerPanel.isSupported(file)) {
+                System.out.println("### In first part of setFile()");
                 mediaPlayerPanel.loadFile(file);
                 this.showVideoPanel();
             } else if (imagePanelInited && imagePanel.isSupported(file)) {
+                System.out.println("### In second part of setFile()"); // This is always the path taken
                 imagePanel.loadFile(file);
                 this.showImagePanel();
             }

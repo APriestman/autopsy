@@ -213,6 +213,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
     })
     MediaViewImagePanel() {
         initComponents();
+        System.out.println("### Creating MediaViewImagePanel");
 
         imageTransforms = new ImageTransforms(0, 0, true);
 
@@ -314,6 +315,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
                     EventQueue.invokeLater(() -> {
                         add(fxPanel);//add jfx ui to JPanel
                     });
+                    System.out.println("### Finished creating fxPanel");
                 }
             });
         }
@@ -501,6 +503,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
      *                    components of this panel.
      */
     private void onReadImageTaskSucceeded(AbstractFile file, double panelWidth, double panelHeight) {
+        System.out.println("### MediaViewImagePanel.onReadImageTaskSucceeded()");
         if (!Case.isCaseOpen()) {
             /*
              * Handle the in-between condition when case is being closed and an
@@ -521,6 +524,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
                 if (nonNull(fxImage)) {
                     // We have a non-null image, so let's show it.
                     fxImageView.setImage(fxImage);
+                    System.out.println("###   Got fxImage with dimensions " + fxImage.getWidth() + ", " + fxImage.getHeight());
                     resetView(panelWidth, panelHeight);
                     masterGroup.getChildren().add(fxImageView);
                     masterGroup.getChildren().add(tagsGroup);
@@ -539,6 +543,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
                     } catch (TskCoreException | NoCurrentCaseException ex) {
                         logger.log(Level.WARNING, "Could not retrieve image tags for file in case db", ex); //NON-NLS
                     }
+                    System.out.println("###   Setting masterGroup to scrollPane");
                     scrollPane.setContent(masterGroup);
                 } else {
                     showErrorButton(Bundle.MediaViewImagePanel_errorLabel_text(), file);
@@ -558,6 +563,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
      * @param file The image file.
      */
     private void onReadImageTaskFailed(AbstractFile file) {
+        System.out.println("### MediaViewImagePanel.onReadImageTaskSucceeded()");
         if (!Case.isCaseOpen()) {
             /*
              * Handle in-between condition when case is being closed and an

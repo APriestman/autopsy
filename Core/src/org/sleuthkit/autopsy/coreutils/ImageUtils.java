@@ -883,6 +883,7 @@ public class ImageUtils {
         }
 
         protected javafx.scene.image.Image readImage() throws IOException {
+            System.out.println("### ImageUtils.readImage()");
             if (isCancelled()) {
                 return null;
             }
