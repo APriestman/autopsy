@@ -883,7 +883,7 @@ public class ImageUtils {
         }
 
         protected javafx.scene.image.Image readImage() throws IOException {
-            System.out.println("### ImageUtils.readImage()");
+            System.out.println("### ImageUtils.readImage() - thread " + Thread.currentThread().getName());
             if (isCancelled()) {
                 return null;
             }

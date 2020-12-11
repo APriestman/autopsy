@@ -118,6 +118,7 @@ class MediaFileViewer extends javax.swing.JPanel implements FileTypeViewer {
      */
     @Override
     public void setFile(AbstractFile file) {
+        System.out.println("### setFile() - thread " + Thread.currentThread().getName());
         try {
 
             if (file == null) {
@@ -131,13 +132,12 @@ class MediaFileViewer extends javax.swing.JPanel implements FileTypeViewer {
 
             lastFile = file;
             if (mediaPlayerPanel != null && mediaPlayerPanel.isSupported(file)) {
-                System.out.println("### In first part of setFile()");
                 mediaPlayerPanel.loadFile(file);
                 this.showVideoPanel();
             } else if (imagePanelInited && imagePanel.isSupported(file)) {
-                System.out.println("### In second part of setFile()"); // This is always the path taken
-                imagePanel.loadFile(file);
-                this.showImagePanel();
+                imagePanel.loadFile(file, this);
+                System.out.println("### Showing image panel");
+                //this.showImagePanel();
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Exception while setting node", e); //NON-NLS
@@ -155,7 +155,7 @@ class MediaFileViewer extends javax.swing.JPanel implements FileTypeViewer {
     /**
      * Show the image panel.
      */
-    private void showImagePanel() {
+    synchronized void showImagePanel() {
         CardLayout layout = (CardLayout) this.getLayout();
         layout.show(this, IMAGE_VIEWER_LAYER);
     }

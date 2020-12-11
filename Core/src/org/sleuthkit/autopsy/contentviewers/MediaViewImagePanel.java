@@ -131,15 +131,15 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
     @ThreadConfined(type = ThreadConfined.ThreadType.JFX)
     private final MaskerPane maskerPane = new MaskerPane();
     @ThreadConfined(type = ThreadConfined.ThreadType.JFX)
-    private Group masterGroup;
+    private volatile Group masterGroup;
     @ThreadConfined(type = ThreadConfined.ThreadType.JFX)
     private ImageTagsGroup tagsGroup;
     @ThreadConfined(type = ThreadConfined.ThreadType.JFX)
     private ImageTagCreator imageTagCreator;
     @ThreadConfined(type = ThreadConfined.ThreadType.JFX)
-    private ImageView fxImageView;
+    private volatile ImageView fxImageView;
     @ThreadConfined(type = ThreadConfined.ThreadType.JFX)
-    private ScrollPane scrollPane;
+    private volatile ScrollPane scrollPane;
 
     /*
      * Threading policy: Swing UI components, must be accessed in EDT only.
@@ -455,7 +455,8 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
      * @param file The image file.
      */
     @ThreadConfined(type = ThreadConfined.ThreadType.AWT)
-    final void loadFile(final AbstractFile file) {
+    final void loadFile(final AbstractFile file, final MediaFileViewer mainPanel) {
+        System.out.println("### loadFile - starting thread " + Thread.currentThread().getName());
         ensureInSwingThread();
         if (!isInited()) {
             return;
@@ -464,6 +465,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
         final double panelWidth = fxPanel.getWidth();
         final double panelHeight = fxPanel.getHeight();
         Platform.runLater(() -> {
+            System.out.println("### loadFile - runLater() " + Thread.currentThread().getName());
             /*
              * Set up a new task to get the contents of the image file in
              * displayable form and cancel any previous task in progress.
@@ -473,7 +475,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
             }
             readImageFileTask = ImageUtils.newReadImageTask(file);
             readImageFileTask.setOnSucceeded(succeeded -> {
-                onReadImageTaskSucceeded(file, panelWidth, panelHeight);
+                onReadImageTaskSucceeded(file, panelWidth, panelHeight, mainPanel);
             });
             readImageFileTask.setOnFailed(failed -> {
                 onReadImageTaskFailed(file);
@@ -502,8 +504,8 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
      * @param panelHeight The height of the child panel that contains the JFX
      *                    components of this panel.
      */
-    private void onReadImageTaskSucceeded(AbstractFile file, double panelWidth, double panelHeight) {
-        System.out.println("### MediaViewImagePanel.onReadImageTaskSucceeded()");
+    private void onReadImageTaskSucceeded(AbstractFile file, double panelWidth, double panelHeight, final MediaFileViewer mainPanel) {
+        System.out.println("### MediaViewImagePanel.onReadImageTaskSucceeded() - thread " + Thread.currentThread().getName());
         if (!Case.isCaseOpen()) {
             /*
              * Handle the in-between condition when case is being closed and an
@@ -516,6 +518,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
         }
 
         Platform.runLater(() -> {
+            System.out.println("### MediaViewImagePanel runLater() - thread " + Thread.currentThread().getName());
             try {
                 Image fxImage = readImageFileTask.get();
                 masterGroup.getChildren().clear();
@@ -552,6 +555,9 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
                 showErrorButton(Bundle.MediaViewImagePanel_errorLabel_text(), file);
             }
             scrollPane.setCursor(Cursor.DEFAULT);
+            synchronized (this) {
+                SwingUtilities.invokeLater(() -> {mainPanel.showImagePanel();});
+            }
         });
     }
 
