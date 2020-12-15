@@ -66,6 +66,7 @@ class MediaFileViewer extends javax.swing.JPanel implements FileTypeViewer {
 
         customizeComponents();
         LOGGER.log(Level.INFO, "Created MediaView instance: {0}", this); //NON-NLS
+        setFile(null);
     }
 
     private void customizeComponents() {

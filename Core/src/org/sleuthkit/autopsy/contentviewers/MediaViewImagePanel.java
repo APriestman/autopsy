@@ -94,7 +94,6 @@ import org.sleuthkit.autopsy.directorytree.ExternalViewerAction;
 import org.sleuthkit.datamodel.AbstractFile;
 import org.sleuthkit.datamodel.ContentTag;
 import org.sleuthkit.datamodel.TskCoreException;
-
 /**
  * A media image file viewer implemented as a Swing panel that uses JavaFX (JFX)
  * components in a child JFX panel to render the image. Images can be zoomed and
@@ -456,6 +455,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
      */
     @ThreadConfined(type = ThreadConfined.ThreadType.AWT)
     final void loadFile(final AbstractFile file, final MediaFileViewer mainPanel) {
+        try {
         System.out.println("### loadFile - starting thread " + Thread.currentThread().getName());
         ensureInSwingThread();
         if (!isInited()) {
@@ -464,7 +464,8 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
 
         final double panelWidth = fxPanel.getWidth();
         final double panelHeight = fxPanel.getHeight();
-        Platform.runLater(() -> {
+        System.out.println("### loadFile - width: " + panelWidth + ", height: " + panelHeight);
+        //Platform.runLater(() -> {
             System.out.println("### loadFile - runLater() " + Thread.currentThread().getName());
             /*
              * Set up a new task to get the contents of the image file in
@@ -485,13 +486,25 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
              * Update the JFX components to a "task in progress" state and start
              * the task.
              */
+            /*Platform.runLater(() -> {
             maskerPane.setProgressNode(progressBar);
             progressBar.progressProperty().bind(readImageFileTask.progressProperty());
             maskerPane.textProperty().bind(readImageFileTask.messageProperty());
             scrollPane.setContent(null); // Prevent content display issues.
-            scrollPane.setCursor(Cursor.WAIT);
-            new Thread(readImageFileTask).start();
-        });
+            scrollPane.setCursor(Cursor.WAIT);});*/
+            System.out.println("### loadFile - Starting readImageFileTask");
+            Thread t = new Thread(readImageFileTask);
+            t.start();
+            try {
+            t.join();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        } catch (Exception ex) {
+            System.out.println("### Exception in loadFile()");
+            ex.printStackTrace();
+        }
+        //});
     }
 
     /**
@@ -517,7 +530,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
             return;
         }
 
-        Platform.runLater(() -> {
+        //Platform.runLater(() -> {
             System.out.println("### MediaViewImagePanel runLater() - thread " + Thread.currentThread().getName());
             try {
                 Image fxImage = readImageFileTask.get();
@@ -528,6 +541,7 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
                     // We have a non-null image, so let's show it.
                     fxImageView.setImage(fxImage);
                     System.out.println("###   Got fxImage with dimensions " + fxImage.getWidth() + ", " + fxImage.getHeight());
+                    //System.out.println("###");
                     resetView(panelWidth, panelHeight);
                     masterGroup.getChildren().add(fxImageView);
                     masterGroup.getChildren().add(tagsGroup);
@@ -556,9 +570,17 @@ class MediaViewImagePanel extends JPanel implements MediaFileViewer.MediaViewPan
             }
             scrollPane.setCursor(Cursor.DEFAULT);
             synchronized (this) {
-                SwingUtilities.invokeLater(() -> {mainPanel.showImagePanel();});
+                try {
+                SwingUtilities.invokeAndWait(() -> {mainPanel.showImagePanel();});
+                
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+                System.out.println("  Done with showImagePanel");
             }
-        });
+        //});
+        
+        System.out.println("###    After runLater()");
     }
 
     /**
