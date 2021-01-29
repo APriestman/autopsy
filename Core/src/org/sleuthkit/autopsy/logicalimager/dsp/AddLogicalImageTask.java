@@ -481,7 +481,8 @@ final class AddLogicalImageTask implements Runnable {
 
         try {
             trans = skCase.beginTransaction();
-            LocalFilesDataSource localFilesDataSource = skCase.addLocalFilesDataSource(deviceId, this.src.getName(), timeZone, trans);
+            // APTODO fix host
+            LocalFilesDataSource localFilesDataSource = skCase.addLocalFilesDataSource(deviceId, this.src.getName(), timeZone, 1, trans);
             LocalFileImporter fileImporter = new LocalFileImporter(skCase, trans);
 
             try (BufferedReader br = new BufferedReader(new InputStreamReader(

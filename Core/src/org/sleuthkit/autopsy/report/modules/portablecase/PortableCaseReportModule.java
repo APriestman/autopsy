@@ -1083,8 +1083,10 @@ public class PortableCaseReportModule implements ReportModule {
             try {
                 if (content instanceof Image) {
                     Image image = (Image) content;
+                    // APTODO make sure host is copied first!!!
                     newContent = portableSkCase.addImage(image.getType(), image.getSsize(), image.getSize(), image.getName(),
-                            new ArrayList<>(), image.getTimeZone(), image.getMd5(), image.getSha1(), image.getSha256(), image.getDeviceId(), trans);
+                            new ArrayList<>(), image.getTimeZone(), image.getMd5(), image.getSha1(), image.getSha256(), 
+                            image.getDeviceId(), image.getHost(), trans);
                 } else if (content instanceof VolumeSystem) {
                     VolumeSystem vs = (VolumeSystem) content;
                     newContent = portableSkCase.addVolumeSystem(parentId, vs.getType(), vs.getOffset(), vs.getBlockSize(), trans);
@@ -1108,7 +1110,8 @@ public class PortableCaseReportModule implements ReportModule {
 
                     if (abstractFile instanceof LocalFilesDataSource) {
                         LocalFilesDataSource localFilesDS = (LocalFilesDataSource) abstractFile;
-                        newContent = portableSkCase.addLocalFilesDataSource(localFilesDS.getDeviceId(), localFilesDS.getName(), localFilesDS.getTimeZone(), trans);
+                        // APTODO make sure host is copied first!!!
+                        newContent = portableSkCase.addLocalFilesDataSource(localFilesDS.getDeviceId(), localFilesDS.getName(), localFilesDS.getTimeZone(), localFilesDS.getHost(), trans);
                     } else {
                         if (abstractFile.isDir()) {
                             newContent = portableSkCase.addLocalDirectory(parentId, abstractFile.getName(), trans);

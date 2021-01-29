@@ -36,6 +36,7 @@ import org.sleuthkit.autopsy.ingest.ModuleContentEvent;
 import org.sleuthkit.datamodel.AbstractFile;
 import org.sleuthkit.datamodel.Content;
 import org.sleuthkit.datamodel.DerivedFile;
+import org.sleuthkit.datamodel.Host;
 import org.sleuthkit.datamodel.LayoutFile;
 import org.sleuthkit.datamodel.LocalDirectory;
 import org.sleuthkit.datamodel.SleuthkitCase;
@@ -479,6 +480,7 @@ public class FileManager implements Closeable {
      *                                 source, may be the empty string.
      * @param localFilePaths           A list of local/logical file and/or
      *                                 directory localFilePaths.
+     * @param host                     The host associated with this data source
      * @param progressUpdater          Called after each file/directory is added
      *                                 to the case database.
      *
@@ -489,7 +491,8 @@ public class FileManager implements Closeable {
      * @throws TskDataException if any of the local file paths is for a file or
      *                          directory that does not exist or cannot be read.
      */
-    public synchronized LocalFilesDataSource addLocalFilesDataSource(String deviceId, String rootVirtualDirectoryName, String timeZone, List<String> localFilePaths, FileAddProgressUpdater progressUpdater) throws TskCoreException, TskDataException {
+    public synchronized LocalFilesDataSource addLocalFilesDataSource(String deviceId, String rootVirtualDirectoryName, String timeZone, 
+            List<String> localFilePaths, Host host, FileAddProgressUpdater progressUpdater) throws TskCoreException, TskDataException {
         if (null == caseDb) {
             throw new TskCoreException("File manager has been closed");
         }
@@ -506,7 +509,7 @@ public class FileManager implements Closeable {
              * children to the case database.
              */
             trans = caseDb.beginTransaction();
-            LocalFilesDataSource dataSource = caseDb.addLocalFilesDataSource(deviceId, rootDirectoryName, timeZone, trans);
+            LocalFilesDataSource dataSource = caseDb.addLocalFilesDataSource(deviceId, rootDirectoryName, timeZone, host, trans);
             List<AbstractFile> filesAdded = new ArrayList<>();
             for (java.io.File localFile : localFiles) {
                 AbstractFile fileAdded = addLocalFile(trans, dataSource, localFile, TskData.EncodingType.NONE, progressUpdater);
@@ -799,4 +802,41 @@ public class FileManager implements Closeable {
         return addLocalFile(trans, parentDirectory, localFile, TskData.EncodingType.NONE, progressUpdater);
     }
 
+    
+    /**
+     * Adds a set of local/logical files and/or directories to the case database
+     * as data source.
+     *
+     * @param deviceId                 An ASCII-printable identifier for the
+     *                                 device associated with the data source
+     *                                 that is intended to be unique across
+     *                                 multiple cases (e.g., a UUID).
+     * @param rootVirtualDirectoryName The name to give to the virtual directory
+     *                                 that will serve as the root for the
+     *                                 local/logical files and/or directories
+     *                                 that compose the data source. Pass the
+     *                                 empty string to get a default name of the
+     *                                 form: LogicalFileSet[N]
+     * @param timeZone                 The time zone used to process the data
+     *                                 source, may be the empty string.
+     * @param localFilePaths           A list of local/logical file and/or
+     *                                 directory localFilePaths.
+     * @param progressUpdater          Called after each file/directory is added
+     *                                 to the case database.
+     *
+     * @return A local files data source object.
+     *
+     * @throws TskCoreException If there is a problem completing a database
+     *                          operation.
+     * @throws TskDataException if any of the local file paths is for a file or
+     *                          directory that does not exist or cannot be read.
+     * 
+     * @deprecated Use version with host parameter
+     */
+    @Deprecated
+    public synchronized LocalFilesDataSource addLocalFilesDataSource(String deviceId, String rootVirtualDirectoryName, String timeZone, List<String> localFilePaths, FileAddProgressUpdater progressUpdater) throws TskCoreException, TskDataException {
+        // APTODO review default name
+        Host host = caseDb.getHostManager().getOrCreateHost("default_host_" + deviceId);
+        return addLocalFilesDataSource(deviceId, rootVirtualDirectoryName, timeZone, localFilePaths, host, progressUpdater);
+    }
 }
