@@ -501,8 +501,8 @@ def normalize_db_entry(line, files_table, vs_parts_table, vs_info_table, fs_info
     elif path_index:
         obj_id = int(fields_list[0])
         objValue = files_table[obj_id]
-        # remove the obj_id from ModuleOutput/EmbeddedFileExtractor directory
-        idx_pre = fields_list[1].find('EmbeddedFileExtractor') + len('EmbeddedFileExtractor')
+        # remove the obj_id from ModuleOutput/EFE directory
+        idx_pre = fields_list[1].find('ModuleOutput\\EFE') + len('ModuleOutput\\EFE')
         if idx_pre > -1:
             idx_pos =  fields_list[1].find('\\', idx_pre + 2)
             dir_to_replace = fields_list[1][idx_pre + 1 : idx_pos] # +1 to skip the file seperator
